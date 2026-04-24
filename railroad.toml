@@ -1,0 +1,13 @@
+[build]
+dockerfile = "Dockerfile"
+context = "."
+
+[[services]]
+name = "backend"
+dockerfile = "backend/Dockerfile"
+context = "backend"
+
+[[services]]
+name = "frontend"
+dockerfile = "frontend/Dockerfile"
+context = "frontend"
