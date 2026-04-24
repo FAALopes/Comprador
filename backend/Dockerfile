@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY backend/package*.json ./
-RUN npm install --omit=dev
+RUN npm install
 
 COPY backend/src ./src
 COPY backend/tsconfig.json ./
