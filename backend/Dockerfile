@@ -10,8 +10,8 @@ COPY backend/tsconfig.json ./
 COPY backend/prisma ./prisma
 COPY backend/prisma.config.ts ./
 
-RUN npm run build
 RUN npx prisma generate
+RUN npm run build
 
 EXPOSE 3000
 
