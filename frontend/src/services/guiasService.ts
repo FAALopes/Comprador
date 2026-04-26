@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+// Use environment variable if available, otherwise use production backend URL
+const API_URL = import.meta.env.VITE_API_URL || "https://cheerful-amazement-production-c567.up.railway.app/api";
 
 export interface GuiaItem {
   descricao: string;
