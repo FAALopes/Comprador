@@ -1,13 +1,5 @@
-// Dynamic import for pdf-parse (CommonJS module)
-let pdfParse: any;
-
-async function initPdfParse() {
-  if (!pdfParse) {
-    const module = await import("pdf-parse");
-    pdfParse = module.default;
-  }
-  return pdfParse;
-}
+// pdf-parse v2 uses the PDFParse class
+import { PDFParse } from "pdf-parse";
 
 export interface ParsedPdfContent {
   titulo: string;
@@ -27,9 +19,10 @@ export interface ParsedPdfContent {
  */
 export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<string> {
   try {
-    const pdfParseFunc = await initPdfParse();
-    const data = await pdfParseFunc(pdfBuffer);
-    return data.text || "";
+    const parser = new PDFParse({ data: new Uint8Array(pdfBuffer) });
+    const result = await parser.getText();
+    await parser.destroy();
+    return result.text || "";
   } catch (error) {
     console.error("Error extracting text from PDF:", error);
     throw new Error("Falha ao extrair texto do PDF");
