@@ -12,6 +12,7 @@ RUN npm install
 COPY frontend/src ./src
 COPY frontend/index.html ./
 COPY frontend/tsconfig.json ./
+COPY frontend/tsconfig.node.json ./
 COPY frontend/vite.config.ts ./
 
 RUN npm run build
