@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import type { GuiaEntrada } from "../services/guiasService";
-import { updateGuia } from "../services/guiasService";
+import { updateGuia, reprocessGuia } from "../services/guiasService";
 
 interface GuiaDetailProps {
   guia: GuiaEntrada;
@@ -11,6 +11,7 @@ interface GuiaDetailProps {
 export function GuiaDetail({ guia, onClose, onUpdate }: GuiaDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReprocessing, setIsReprocessing] = useState(false);
   const [editData, setEditData] = useState({
     titulo: guia.titulo,
     descricao: guia.descricao,
@@ -26,6 +27,18 @@ export function GuiaDetail({ guia, onClose, onUpdate }: GuiaDetailProps) {
       alert("Erro ao atualizar guia");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleReprocess = async () => {
+    setIsReprocessing(true);
+    try {
+      const updated = await reprocessGuia(guia.id);
+      onUpdate(updated);
+    } catch (error) {
+      alert("Erro ao reprocessar guia");
+    } finally {
+      setIsReprocessing(false);
     }
   };
 
@@ -98,23 +111,79 @@ export function GuiaDetail({ guia, onClose, onUpdate }: GuiaDetailProps) {
           </div>
 
           <div className="detail-section">
-            <label>Items Extraídos</label>
+            <label>Items Extraídos ({guia.items.length})</label>
             {guia.items.length > 0 ? (
-              <div className="items-list">
-                {guia.items.map((item, idx) => (
-                  <div key={idx} className="item-card">
-                    <div className="item-descricao">{item.descricao}</div>
-                    {item.quantidade && (
-                      <div className="item-meta">
-                        Qtd: {item.quantidade}{" "}
-                        {item.unidade ? item.unidade : ""}
-                      </div>
-                    )}
-                    {item.preco && (
-                      <div className="item-meta">Preço: €{item.preco}</div>
-                    )}
-                  </div>
-                ))}
+              <div className="items-table-wrapper">
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Pos</th>
+                      <th>Descrição</th>
+                      <th>Qtd</th>
+                      <th>Un</th>
+                      <th>Tubos</th>
+                      <th>Atados</th>
+                      <th>Pr. Bruto</th>
+                      <th>Desc. %</th>
+                      <th>Pr. Líq.</th>
+                      <th>Valor Líq.</th>
+                      <th>IVA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {guia.items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{item.pos ?? "-"}</td>
+                        <td className="item-desc-cell">{item.descricao}</td>
+                        <td className="num">
+                          {item.quantidade !== undefined
+                            ? item.quantidade.toLocaleString("pt-PT", {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 4,
+                              })
+                            : "-"}
+                        </td>
+                        <td>{item.unidade ?? "-"}</td>
+                        <td className="num">{item.tubos ?? "-"}</td>
+                        <td className="num">
+                          {item.atados !== undefined
+                            ? item.atados.toLocaleString("pt-PT")
+                            : "-"}
+                        </td>
+                        <td className="num">
+                          {item.precoBruto !== undefined
+                            ? item.precoBruto.toLocaleString("pt-PT", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 4,
+                              })
+                            : "-"}
+                        </td>
+                        <td className="num">
+                          {item.desconto !== undefined
+                            ? `${item.desconto.toLocaleString("pt-PT")}%`
+                            : "-"}
+                        </td>
+                        <td className="num">
+                          {item.precoLiquido !== undefined
+                            ? item.precoLiquido.toLocaleString("pt-PT", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 4,
+                              })
+                            : "-"}
+                        </td>
+                        <td className="num bold">
+                          {item.valorLiquido !== undefined
+                            ? item.valorLiquido.toLocaleString("pt-PT", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : "-"}
+                        </td>
+                        <td className="num">{item.iva ?? "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <p className="detail-value">Nenhum item extraído</p>
@@ -151,6 +220,13 @@ export function GuiaDetail({ guia, onClose, onUpdate }: GuiaDetailProps) {
           ) : (
             <>
               <button
+                className="btn btn-reprocess"
+                onClick={handleReprocess}
+                disabled={isReprocessing}
+              >
+                {isReprocessing ? "A reprocessar..." : "🔄 Reprocessar"}
+              </button>
+              <button
                 className="btn btn-edit"
                 onClick={() => setIsEditing(true)}
               >
@@ -180,9 +256,9 @@ export function GuiaDetail({ guia, onClose, onUpdate }: GuiaDetailProps) {
           .modal-content {
             background-color: white;
             border-radius: 8px;
-            max-width: 800px;
-            width: 90%;
-            max-height: 90vh;
+            max-width: 1280px;
+            width: 95%;
+            max-height: 92vh;
             display: flex;
             flex-direction: column;
             box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
@@ -265,29 +341,58 @@ export function GuiaDetail({ guia, onClose, onUpdate }: GuiaDetailProps) {
             resize: vertical;
           }
 
-          .items-list {
-            display: grid;
-            gap: 10px;
-          }
-
-          .item-card {
-            background-color: #f9fafb;
+          .items-table-wrapper {
+            overflow-x: auto;
             border: 1px solid #e5e7eb;
             border-radius: 4px;
-            padding: 12px;
-            font-size: 13px;
           }
 
-          .item-descricao {
-            font-weight: 500;
-            color: #1f2937;
-            margin-bottom: 6px;
-            word-break: break-word;
-          }
-
-          .item-meta {
-            color: #6b7280;
+          .items-table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 12px;
+          }
+
+          .items-table thead {
+            background-color: #f3f4f6;
+            position: sticky;
+            top: 0;
+          }
+
+          .items-table th {
+            text-align: left;
+            padding: 8px 10px;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #d1d5db;
+            white-space: nowrap;
+          }
+
+          .items-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #1f2937;
+            vertical-align: top;
+          }
+
+          .items-table tr:hover {
+            background-color: #f9fafb;
+          }
+
+          .items-table .num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+          }
+
+          .items-table .bold {
+            font-weight: 600;
+          }
+
+          .items-table .item-desc-cell {
+            max-width: 280px;
+            min-width: 200px;
+            word-break: break-word;
           }
 
           .content-preview {
@@ -336,6 +441,15 @@ export function GuiaDetail({ guia, onClose, onUpdate }: GuiaDetailProps) {
 
           .btn-edit:hover {
             background-color: #d97706;
+          }
+
+          .btn-reprocess {
+            background-color: #8b5cf6;
+            color: white;
+          }
+
+          .btn-reprocess:hover {
+            background-color: #7c3aed;
           }
 
           .btn-save {

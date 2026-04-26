@@ -6,6 +6,7 @@ import {
   getGuiaById,
   deleteGuia,
   updateGuia,
+  reprocessGuia,
 } from "../controllers/guiasController.js";
 
 const router = Router();
@@ -27,6 +28,7 @@ const upload = multer({
 
 // Routes
 router.post("/upload", upload.single("file"), uploadGuia);
+router.post("/:id/reprocess", reprocessGuia);
 router.get("/", getAllGuias);
 router.get("/:id", getGuiaById);
 router.patch("/:id", updateGuia);

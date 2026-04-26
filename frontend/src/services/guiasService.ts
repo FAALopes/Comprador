@@ -2,9 +2,17 @@
 const API_URL = import.meta.env.VITE_API_URL || "https://cheerful-amazement-production-c567.up.railway.app/api";
 
 export interface GuiaItem {
+  pos?: number;
   descricao: string;
   quantidade?: number;
   unidade?: string;
+  tubos?: number;
+  atados?: number;
+  precoBruto?: number;
+  desconto?: number;
+  precoLiquido?: number;
+  valorLiquido?: number;
+  iva?: number;
   preco?: number;
   [key: string]: any;
 }
@@ -81,6 +89,22 @@ export async function deleteGuia(id: string): Promise<void> {
   if (!response.ok) {
     throw new Error("Erro ao deletar guia");
   }
+}
+
+/**
+ * Reprocess existing guia (re-runs parser on stored content)
+ */
+export async function reprocessGuia(id: string): Promise<GuiaEntrada> {
+  const response = await fetch(`${API_URL}/guias/${id}/reprocess`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao reprocessar guia");
+  }
+
+  const data = await response.json();
+  return data.guia;
 }
 
 /**

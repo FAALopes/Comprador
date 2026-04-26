@@ -3,6 +3,43 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { extractTextFromPdf, parseContent } from "../services/pdfService.js";
 
+/**
+ * Reprocess existing guia using stored conteudoCompleto (re-runs parseContent)
+ * POST /api/guias/:id/reprocess
+ */
+export async function reprocessGuia(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const guia = await prisma.guiasEntrada.findUnique({ where: { id } });
+    if (!guia) {
+      return res.status(404).json({ error: "Guia não encontrada" });
+    }
+
+    const parsed = parseContent(guia.conteudoCompleto);
+
+    const updated = await prisma.guiasEntrada.update({
+      where: { id },
+      data: {
+        titulo: parsed.titulo,
+        descricao: parsed.descricao,
+        items: parsed.items,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: "Guia reprocessada com sucesso",
+      guia: updated,
+    });
+  } catch (error) {
+    console.error("Error reprocessing guia:", error);
+    return res.status(500).json({
+      error: "Erro ao reprocessar guia",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}
+
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL || "postgresql://user:password@localhost/db",
 });
